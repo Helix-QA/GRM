@@ -1,28 +1,30 @@
 pipeline {
     agent { label "OneS" }
+    environment {
+        foldercf = "D:\\РЕЛИЗЫ\\${folderProduct}\\cf"
+    }
     stages {
-        stage("Очистка данных перед отправкой"){
+        stage("Подготовка данных"){
             steps{
-                script {
-                    def cleaning = 'GRM/cleaning.py'
-                    sh "python -X utf8 ${cleaning}" // Очистка 
-                }
+                script{
+                    if (params.nameProduct.contains('finessCorp')){
+                        env.applicationId = "ff8080818114016801822509d75d0029"
+                        env.folderProduct = "Фитнес клуб КОРП"
+
+                    } else if (params.nameProduct.contains('SpaSalon3')) {
+                        env.applicationId = "ff808081811401680182257b91c0002d"
+                        env.folderProduct = "SPA - Салон"
+
+                    } else if (params.nameProduct.contains('salon30')){
+                        env.applicationId = "ff8080817ccbb453017d0ee91ffe000d"
+                        env.folderProduct = "Салон красоты"
+                    }
+                }                
             }
-        }
+       }
         stage('Получение предподписанной ссылки') {
             steps {
                 script {
-					if (params.nameProduct.contains('finessCorp')) {
-					env.applicationId = "ff8080818114016801822509d75d0029"
-                    env.folderProduct = "FITNESSCORP"
-                    } else if (params.nameProduct.contains('SpaSalon3')) {
-					env.applicationId = "ff808081811401680182257b91c0002d"
-                    env.folderProduct = "SpaSalon3"
-                    } else if (params.nameProduct.contains('salon30')) {
-					env.applicationId = "ff8080817ccbb453017d0ee91ffe000d"
-                    env.folderProduct = "salon30"
-                    }
-                    env.foldercf = "D:\\GRM\\${folderProduct}\\Old_versions_cf"
                     def params = [
                         "applicationId": "${env.applicationId}",
                         "name": "${params.version}",
@@ -59,17 +61,15 @@ pipeline {
                 }
             }
         }
-        stage("Перенос .cf и выгрузка .dt"){
+        stage("Получение .dt"){
             steps{
                 script{
-                    def transfer = 'GRM/transfer.py'
-                    sh "python -X utf8 ${transfer} \"${env.foldercf}\" \"${params.version}\"" // Копирование .cf
                     bat """
                     chcp 65001
                     @call vrunner session kill --db grm --with-nolock 
                     @call vrunner load --src ${env.foldercf}\\${params.version}.cf --ibconnection /Slocalhost/grm
                     @call vrunner updatedb --ibconnection /Slocalhost/grm
-                    @call vrunner dump D:\\dt\\1Cv8.dt --ibconnection /Slocalhost/grm
+                    @call vrunner dump dt/1Cv8.dt --ibconnection /Slocalhost/grm
                     """
                 }
             }
@@ -78,7 +78,7 @@ pipeline {
             steps {
                 script {
 					def uploadUrl = UPLOAD_URL
-                    def filePath = "D:\\dt\\1Cv8.dt" //путь к файлу
+                    def filePath = "dt/1Cv8.dt" //путь к файлу
                     // Проверка наличия файла
                     if (!fileExists(filePath)) {
                         error "File not found at: ${filePath}"
@@ -87,7 +87,7 @@ pipeline {
                     echo "Target URL: ${uploadUrl}"
 					// Отправляем запрос через python 
 					sh """
-					python GRM/upload_file.py "${uploadUrl}" "${filePath}"
+					python tools/upload_file.py "${uploadUrl}" "${filePath}"
 					"""
                 }
             }
