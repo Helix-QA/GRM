@@ -1,8 +1,5 @@
 pipeline {
     agent { label "OneS" }
-    environment {
-        foldercf = "D:\\РЕЛИЗЫ\\${folderProduct}\\cf"
-    }
     stages {
         stage("Подготовка данных"){
             steps{
@@ -25,6 +22,7 @@ pipeline {
         stage('Получение предподписанной ссылки') {
             steps {
                 script {
+                    env.foldercf = "D:\\РЕЛИЗЫ\\${folderProduct}\\cf"
                     def params = [
                         "applicationId": "${env.applicationId}",
                         "name": "${params.version}",
