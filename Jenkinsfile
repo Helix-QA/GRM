@@ -73,44 +73,44 @@ pipeline {
                 }
             }
         }
-		// stage('Загрузка файла в объектное хранилище') {
-        //     steps {
-        //         script {
-		// 			def uploadUrl = UPLOAD_URL
-        //             def filePath = "dt/1Cv8.dt" //путь к файлу
-        //             // Проверка наличия файла
-        //             if (!fileExists(filePath)) {
-        //                 error "File not found at: ${filePath}"
-        //             }
-        //             echo "Uploading file from: ${filePath}"
-        //             echo "Target URL: ${uploadUrl}"
-		// 			// Отправляем запрос через python 
-		// 			sh """
-		// 			python tools/upload_file.py "${uploadUrl}" "${filePath}"
-		// 			"""
-        //         }
-        //     }
-        // }
-		// stage('Установка версии по умолчанию') {
-		// 	steps {
-		// 		script {
-		// 			try {
-		// 				def response = httpRequest(
-		// 					url: "https://1capp.link.1c.ru/1capp-ecw-admin/hs/ECWConfPublication/v1/setDefaultVersion?applicationId=${env.applicationId}&versionId=${env.versionID}",
-		// 					httpMode: 'POST',
-		// 					contentType: 'APPLICATION_JSON',
-		// 					customHeaders: [[name: 'Authorization', value: 'Basic bGFicG86Q28zamlrb20=']],
-		// 					validResponseCodes: '200:299', // Ожидаем успешные коды ответа
-		// 					ignoreSslErrors: true // Если нужно игнорировать ошибки SSL
-		// 				)
-		// 				echo "Response Status: ${response.status}"
-		// 				echo "Response Content: ${response.content}"
-		// 			} catch (Exception e) {
-		// 				echo "Request failed with error: ${e.getMessage()}"
-		// 				error "Failed to set default version: ${e.getMessage()}"
-		// 			}
-		// 		}
-		// 	}
-		// }
+		stage('Загрузка файла в объектное хранилище') {
+            steps {
+                script {
+					def uploadUrl = UPLOAD_URL
+                    def filePath = "dt/1Cv8.dt" //путь к файлу
+                    // Проверка наличия файла
+                    if (!fileExists(filePath)) {
+                        error "File not found at: ${filePath}"
+                    }
+                    echo "Uploading file from: ${filePath}"
+                    echo "Target URL: ${uploadUrl}"
+					// Отправляем запрос через python 
+					sh """
+					python tools/upload_file.py "${uploadUrl}" "${filePath}"
+					"""
+                }
+            }
+        }
+		stage('Установка версии по умолчанию') {
+			steps {
+				script {
+					try {
+						def response = httpRequest(
+							url: "https://1capp.link.1c.ru/1capp-ecw-admin/hs/ECWConfPublication/v1/setDefaultVersion?applicationId=${env.applicationId}&versionId=${env.versionID}",
+							httpMode: 'POST',
+							contentType: 'APPLICATION_JSON',
+							customHeaders: [[name: 'Authorization', value: 'Basic bGFicG86Q28zamlrb20=']],
+							validResponseCodes: '200:299', // Ожидаем успешные коды ответа
+							ignoreSslErrors: true // Если нужно игнорировать ошибки SSL
+						)
+						echo "Response Status: ${response.status}"
+						echo "Response Content: ${response.content}"
+					} catch (Exception e) {
+						echo "Request failed with error: ${e.getMessage()}"
+						error "Failed to set default version: ${e.getMessage()}"
+					}
+				}
+			}
+		}
     }
 }
