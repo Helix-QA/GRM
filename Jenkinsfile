@@ -4,6 +4,7 @@ pipeline {
         stage("Подготовка данных"){
             steps{
                 script{
+                    currentBuild.displayName = "#${BUILD_NUMBER} – ${params.nameProduct}"
                     if (params.nameProduct.contains('finessCorp')){
                         env.applicationId = "ff8080818114016801822509d75d0029"
                         env.folderProduct = "Фитнес клуб КОРП"
