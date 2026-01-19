@@ -1,0 +1,114 @@
+Код уже имеет хорошую структуру и читаемость. Однако, есть несколько моментов, которые можно улучшить:
+
+1.  **Переменные окружения**: Вместо использования глобальных переменных `env.folderProduct`, `env.applicationId` и т.п., лучше использовать локальные переменные внутри каждого этапа пайплайна. Это уменьшит влияние глобального состояния на пайплайн.
+2.  **Обработка ошибок**: Вместо использования общей обработки ошибок в виде `try-catch` блоков, лучше использовать более специфичные обработчики ошибок для каждого этапа пайплайна.
+3.  **Логирование**: Для улучшения логирования можно использовать более детальные сообщения о процессах выполнения, например, с указанием конкретных шагов или операций, которые выполняются.
+4.  **Использование secrets**: Для хранения конфиденциальной информации, такой как токены и пароли, лучше использовать секреты или зашифрованные переменные окружения.
+5.  **TODO**: Для выполнения TODO-задач, таких как улучшение метода аутентификации в `upload_file.py`, нужно будет внести соответствующие изменения в скрипт.
+
+Пример улучшенных этапов пайплайна с учетом вышеизложенных моментов:
+
+```groovy
+// Этап 1: Подготовка данных
+stage("Подготовка данных") {
+    steps {
+        script {
+            def folderProduct
+            def applicationId
+
+            // Определение applicationId и folderProduct на основе nameProduct
+            if (params.nameProduct.contains('finessCorp')) {
+                applicationId = "ff8080818114016801822509d75d0029"
+                folderProduct = "Фитнес клуб КОРП"
+            } else if (params.nameProduct.contains('SpaSalon3')) {
+                applicationId = "ff808081811401680182257b91c0002d"
+                folderProduct = "SPA - Салон"
+            } else if (params.nameProduct.contains('salon30')) {
+                applicationId = "ff8080817ccbb453017d0ee91ffe000d"
+                folderProduct = "Салон красоты"
+            }
+
+            // Установка имени сборки
+            currentBuild.displayName = "#${BUILD_NUMBER} – ${params.nameProduct}"
+
+            // Сохранение переменных в локальных переменных
+            def localFolderProduct = folderProduct
+            def localApplicationId = applicationId
+
+            // Передача переменных в следующие этапы
+            env.folderProduct = localFolderProduct
+            env.applicationId = localApplicationId
+        }
+    }
+}
+
+// Этап 2: Получение предподписанной ссылки
+stage('Получение предподписанной ссылки') {
+    steps {
+        script {
+            // Задание папки для загрузки файла
+            def foldercf = "D:\\РЕЛИЗЫ\\${env.folderProduct}\\cf"
+
+            try {
+                // Отправка запроса для получения предподписанной ссылки
+                def response = httpRequest(
+                    url: 'https://1capp.link.1c.ru/1capp-ecw-admin/hs/ECWConfPublication/v1/getPresignedUrl',
+                    httpMode: 'GET',
+                    contentType: 'APPLICATION_JSON',
+                    requestBody: '{"applicationId": "' + env.applicationId + '", "name": "' + params.version + '", "filename": "1Cv8.dt", "releaseDate": "' + new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").format(new Date()) + '"}',
+                    customHeaders: [[name: 'Authorization', value: 'Basic bGFicG86Q28zamlrb20=']],
+                    validResponseCodes: '200:299',
+                    ignoreSslErrors: true
+                )
+
+                // Проверка статуса ответа
+                if (response.status >= 200 && response.status < 300) {
+                    // Распарсивание ответа для получения ссылки и версии
+                    def jsonSlurper = new groovy.json.JsonSlurper()
+                    def responseJson = jsonSlurper.parseText(response.content)
+                    def uploadUrl = responseJson.uploadUrl
+                    env.versionID = responseJson.id
+
+                    echo "Extracted uploadUrl: ${uploadUrl}"
+                    env.UPLOAD_URL = uploadUrl
+                    echo "Saved uploadUrl to env variable: ${env.UPLOAD_URL}"
+                } else {
+                    echo "Request failed with status: ${response.status}"
+                    error "Failed to get presigned URL: ${response.status}"
+                }
+            } catch (Exception e) {
+                echo "Request failed with error: ${e.getMessage()}"
+                error "Failed to get presigned URL: ${e.getMessage()}"
+            }
+        }
+    }
+}
+
+// Этап 4: Загрузка файла в объектное хранилище
+stage('Загрузка файла в объектное хранилище') {
+    steps {
+        script {
+            // Проверка наличия файла
+            def uploadUrl = env.UPLOAD_URL
+            def filePath = "dt/1Cv8.dt"
+            if (!fileExists(filePath)) {
+                error "File not found at: ${filePath}"
+            }
+            echo "Uploading file from: ${filePath}"
+            echo "Target URL: ${uploadUrl}"
+
+            try {
+                // Загрузка файла
+                sh """
+                python tools/upload_file.py "${uploadUrl}" "${filePath}"
+                """
+            } catch (Exception e) {
+                echo "Upload failed with error: ${e.getMessage()}"
+                error "Failed to upload file: ${e.getMessage()}"
+            }
+        }
+    }
+}
+```
+
+Эти улучшения помогут сделать пайплайн более безопасным, стабильным и читаемым. Также, для выполнения TODO-задач, таких как улучшение метода аутентификации в `upload_file.py`, нужно будет внести соответствующие изменения в скрипт.
