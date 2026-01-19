@@ -1,10 +1,10 @@
-## Улучшение кода с учетом предложений
+## К改进后的代码结构建议
 
-На основе предоставленного кода и предложений, следующие действия были предприняты для улучшения читаемости и добавления TODO:
+根据提供的代码和建议，以下是改进后的代码结构：
 
-### 1. Реализация разделения переменных окружения
+### 1. 环境变量分离
 
-Создан отдельный файл `env.groovy` для хранения переменных окружения.
+创建了一个单独的文件 `env.groovy` 来存储环境变量。
 
 ```groovy
 // env.groovy
@@ -14,17 +14,17 @@ def uploadUrl
 def versionID
 ```
 
-### 2. Обработка ошибок
+### 2. 错误处理
 
-Для каждого этапа пайплайна используются более специфичные обработчики ошибок.
+对于每个 pipeline 阶段，使用更加具体的错误处理器。
 
 ```groovy
-// Этап 1: Подготовка данных
-stage("Подготовка данных") {
+// 阶段 1：数据准备
+stage("数据准备") {
     steps {
         script {
             try {
-                // Определение applicationId и folderProduct на основе nameProduct
+                // 根据 nameProduct 确定 applicationId 和 folderProduct
                 if (params.nameProduct.contains('finessCorp')) {
                     applicationId = "ff8080818114016801822509d75d0029"
                     folderProduct = "Фитнес клуб КОРП"
@@ -36,33 +36,33 @@ stage("Подготовка данных") {
                     folderProduct = "Салон красоты"
                 }
 
-                // Установка имени сборки
+                // 设置构建显示名称
                 currentBuild.displayName = "#${BUILD_NUMBER} – ${params.nameProduct}"
 
-                // Сохранение переменных в локальных переменных
+                // 保存变量到本地变量
                 env.folderProduct = folderProduct
                 env.applicationId = applicationId
             } catch (Exception e) {
-                echo "Error in stage 'Подготовка данных': ${e.getMessage()}"
-                error "Error in stage 'Подготовка данных': ${e.getMessage()}"
+                echo "错误在阶段 '数据准备'：${e.getMessage()}"
+                error "错误在阶段 '数据准备'：${e.getMessage()}"
             }
         }
     }
 }
 ```
 
-### 3. Улучшение логирования
+### 3. 日志记录改进
 
-Для улучшения логирования используются более детальные сообщения о процессах выполнения.
+对于每个 pipeline 阶段，使用更加详细的日志记录。
 
 ```groovy
-// Этап 1: Подготовка данных
-stage("Подготовка данных") {
+// 阶段 1：数据准备
+stage("数据准备") {
     steps {
         script {
             try {
-                echo "Starting stage 'Подготовка данных'"
-                // Определение applicationId и folderProduct на основе nameProduct
+                echo "开始阶段 '数据准备'"
+                // 根据 nameProduct 确定 applicationId 和 folderProduct
                 if (params.nameProduct.contains('finessCorp')) {
                     applicationId = "ff8080818114016801822509d75d0029"
                     folderProduct = "Фитнес клуб КОРП"
@@ -74,40 +74,40 @@ stage("Подготовка данных") {
                     folderProduct = "Салон красоты"
                 }
 
-                echo "applicationId: ${applicationId}, folderProduct: ${folderProduct}"
-                // Установка имени сборки
+                echo "applicationId：${applicationId}，folderProduct：${folderProduct}"
+                // 设置构建显示名称
                 currentBuild.displayName = "#${BUILD_NUMBER} – ${params.nameProduct}"
-                echo "Build display name: ${currentBuild.displayName}"
+                echo "构建显示名称：${currentBuild.displayName}"
 
-                // Сохранение переменных в локальных переменных
+                // 保存变量到本地变量
                 env.folderProduct = folderProduct
                 env.applicationId = applicationId
-                echo "Saved folderProduct and applicationId to env variables"
+                echo "保存 folderProduct 和 applicationId 到 env 变量"
             } catch (Exception e) {
-                echo "Error in stage 'Подготовка данных': ${e.getMessage()}"
-                error "Error in stage 'Подготовка данных': ${e.getMessage()}"
+                echo "错误在阶段 '数据准备'：${e.getMessage()}"
+                error "错误在阶段 '数据准备'：${e.getMessage()}"
             } finally {
-                echo "Finished stage 'Подготовка данных'"
+                echo "结束阶段 '数据准备'"
             }
         }
     }
 }
 ```
 
-### 4. Использование секретов
+### 4. 密钥使用
 
-Для хранения конфиденциальной информации используются секреты или зашифрованные переменные окружения.
+使用密钥或加密变量来存储机密信息。
 
 ```groovy
-// Этап 2: Получение предподписанной ссылки
-stage('Получение предподписанной ссылки') {
+// 阶段 2：获取预签名链接
+stage('获取预签名链接') {
     steps {
         script {
             try {
-                // Задание папки для загрузки файла
+                // 设置文件上传目录
                 def foldercf = "D:\\РЕЛИЗЫ\\${env.folderProduct}\\cf"
 
-                // Отправка запроса для получения предподписанной ссылки
+                // 发送请求获取预签名链接
                 def response = httpRequest(
                     url: 'https://1capp.link.1c.ru/1capp-ecw-admin/hs/ECWConfPublication/v1/getPresignedUrl',
                     httpMode: 'GET',
@@ -118,8 +118,8 @@ stage('Получение предподписанной ссылки') {
                     ignoreSslErrors: true
                 )
             } catch (Exception e) {
-                echo "Request failed with error: ${e.getMessage()}"
-                error "Failed to get presigned URL: ${e.getMessage()}"
+                echo "请求失败，错误：${e.getMessage()}"
+                error "获取预签名链接失败：${e.getMessage()}"
             }
         }
     }
@@ -128,12 +128,12 @@ stage('Получение предподписанной ссылки') {
 
 ### TODO
 
-1. **Улучшить метод аутентификации в `upload_file.py`**: разработать более безопасный и устойчивый метод аутентификации для скрипта `upload_file.py`.
-2. **Добавить модульные тесты для каждого этапа пайплайна**: реализовать модульные тесты для каждого этапа пайплайна, чтобы гарантировать корректное выполнение пайплайна.
-3. **Использовать секреты или зашифрованные переменные окружения для хранения конфиденциальной информации**: хранить конфиденциальную информацию, такую как токены и пароли, используя секреты или зашифрованные переменные окружения.
-4. **Постепенно улучшать скрипт `upload_file.py`**: регулярно проверять и улучшать скрипт `upload_file.py`, чтобы он соответствовал текущим требованиям и возможностям.
+1. **改进 `upload_file.py` 中的认证方法**：开发更安全、更可靠的认证方法，以替代当前的方法。
+2. **为每个 pipeline 阶段添加单元测试**：编写单元测试以确保每个 pipeline 阶段的正确执行。
+3. **使用密钥或加密变量存储机密信息**：使用密钥或加密变量来存储机密信息，如令牌和密码。
+4. **逐步改进 `upload_file.py` 脚本**：定期检查和改进 `upload_file.py` 脚本，以确保其满足当前需求和能力。
 
-### Примечания
+###备注
 
-* **Использовать актуальные библиотеки и плагины**: убедиться, что используются актуальные библиотеки и плагины для пайплайна.
-* **Регулярно проверять и обновлять пайплайн**: регулярно проверять и обновлять пайплайн, чтобы он оставался соответствующим требованиям и безопасности.
+* **使用更新的库和插件**：确保使用最新的库和插件来支持 pipeline。
+* **定期检查和更新 pipeline**：定期检查和更新 pipeline，以确保其满足需求和安全性要求。
