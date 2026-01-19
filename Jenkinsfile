@@ -140,11 +140,11 @@ pipeline {
 
 def messageText() {
     return """
-${params.folderProduct} | ${params.version} — Отправлен в ГРМ
+${env.folderProduct} | ${params.version} — Отправлен в ГРМ
 """.stripIndent().trim()
 }
 def messageTextError() {
     return """
-${params.folderProduct} | ${params.version} — Ошибка при загрузке в ГРМ!
+${env.folderProduct} | ${params.version} — Ошибка при загрузке в ГРМ!
 """.stripIndent().trim()
 }
