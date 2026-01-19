@@ -114,4 +114,22 @@ pipeline {
 			}
 		}
     }
+    post {
+        always {
+            script {
+               echo messageText()
+                    def encodedText = URLEncoder.encode(messageText(), 'UTF-8')
+                    httpRequest(
+                        url: "https://api.telegram.org/bot${env.botToken}/sendMessage?chat_id=${env.chatId}&text=${encodedText}",
+                        httpMode: 'GET'
+                    )
+			}
+        }
+    }
+}
+
+def messageText() {
+    return """
+${params.nameProduct} | ${params.version} — Отправлен в ГРМ
+""".stripIndent().trim()
 }
