@@ -1,8 +1,6 @@
-## К улучшению структуры кода
+## Рефакторинг кода
 
-Ниже приведено улучшение структуры кода на основе предоставленного кода и предложений:
-
-### 1. Изоляция переменных окружения
+### Изоляция переменных окружения
 
 Создан отдельный файл `env.groovy` для хранения переменных окружения.
 
@@ -14,9 +12,9 @@ def uploadUrl
 def versionID
 ```
 
-### 2. Обработка ошибок
+### Обработка ошибок
 
-Для каждого этапа.pipeline используется более具体ный обработчик ошибок.
+Для каждого этапа pipeline используется более具体ный обработчик ошибок.
 
 ```groovy
 // Этап 1: Подготовка данных
@@ -25,15 +23,19 @@ stage("Подготовка данных") {
         script {
             try {
                 // Определение applicationId и folderProduct на основе nameProduct
-                if (params.nameProduct.contains('finessCorp')) {
-                    applicationId = "ff8080818114016801822509d75d0029"
-                    folderProduct = "Фитнес клуб КОРП"
-                } else if (params.nameProduct.contains('SpaSalon3')) {
-                    applicationId = "ff808081811401680182257b91c0002d"
-                    folderProduct = "SPA - Салон"
-                } else if (params.nameProduct.contains('salon30')) {
-                    applicationId = "ff8080817ccbb453017d0ee91ffe000d"
-                    folderProduct = "Салон красоты"
+                def productConfig = [
+                    'finessCorp': ['applicationId': 'ff8080818114016801822509d75d0029', 'folderProduct': 'Фитнес клуб КОРП'],
+                    'SpaSalon3': ['applicationId': 'ff808081811401680182257b91c0002d', 'folderProduct': 'SPA - Салон'],
+                    'salon30': ['applicationId': 'ff8080817ccbb453017d0ee91ffe000d', 'folderProduct': 'Салон красоты']
+                ]
+
+                def productName = params.nameProduct
+                def product = productConfig.find { key, value -> productName.contains(key) }
+                if (product) {
+                    applicationId = product.value.applicationId
+                    folderProduct = product.value.folderProduct
+                } else {
+                    throw new Exception("Производитель не найден")
                 }
 
                 // Установка имени сборки
@@ -51,7 +53,7 @@ stage("Подготовка данных") {
 }
 ```
 
-### 3. Улучшение ведения журнала
+### Улучшение ведения журнала
 
 Для каждого этапа pipeline используется более подробное ведение журнала.
 
@@ -63,15 +65,19 @@ stage("Подготовка данных") {
             try {
                 echo "Начало этапа 'Подготовка данных'"
                 // Определение applicationId и folderProduct на основе nameProduct
-                if (params.nameProduct.contains('finessCorp')) {
-                    applicationId = "ff8080818114016801822509d75d0029"
-                    folderProduct = "Фитнес клуб КОРП"
-                } else if (params.nameProduct.contains('SpaSalon3')) {
-                    applicationId = "ff808081811401680182257b91c0002d"
-                    folderProduct = "SPA - Салон"
-                } else if (params.nameProduct.contains('salon30')) {
-                    applicationId = "ff8080817ccbb453017d0ee91ffe000d"
-                    folderProduct = "Салон красоты"
+                def productConfig = [
+                    'finessCorp': ['applicationId': 'ff8080818114016801822509d75d0029', 'folderProduct': 'Фитнес клуб КОРП'],
+                    'SpaSalon3': ['applicationId': 'ff808081811401680182257b91c0002d', 'folderProduct': 'SPA - Салон'],
+                    'salon30': ['applicationId': 'ff8080817ccbb453017d0ee91ffe000d', 'folderProduct': 'Салон красоты']
+                ]
+
+                def productName = params.nameProduct
+                def product = productConfig.find { key, value -> productName.contains(key) }
+                if (product) {
+                    applicationId = product.value.applicationId
+                    folderProduct = product.value.folderProduct
+                } else {
+                    throw new Exception("Производитель не найден")
                 }
 
                 echo "applicationId: ${applicationId}, folderProduct: ${folderProduct}"
@@ -94,7 +100,7 @@ stage("Подготовка данных") {
 }
 ```
 
-### 4. Использование ключей
+### Использование ключей
 
 Используйте ключи или зашифрованные переменные для хранения конфиденциальной информации.
 
@@ -137,3 +143,10 @@ stage('Получение предварительно подписанного 
 
 * **Использование обновленных библиотек и плагинов**: Убедитесь, что используете последние библиотеки и плагины для поддержки pipeline.
 * **Регулярная проверка и обновление pipeline**: Регулярно проверяйте и обновляйте pipeline, чтобы он соответствовал требованиям и требованиям безопасности.
+
+### Результаты
+
+* **Повышение безопасности**: Использование ключей или зашифрованных переменных для хранения конфиденциальной информации повысит безопасность pipeline.
+* **Улучшение ведения журнала**: Более подробное ведение журнала поможет выявить ошибки и проблемы в pipeline.
+* **Улучшение обработки ошибок**: Использование более конкретных обработчиков ошибок повысит надежность pipeline.
+* **Упрощение обслуживания**: Регулярная проверка и обновление pipeline упростят его обслуживание и поддержку.
