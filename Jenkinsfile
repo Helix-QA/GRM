@@ -115,15 +115,25 @@ pipeline {
 		}
     }
     post {
-        always {
+        success {
             script {
-               echo messageText()
-                    def encodedText = URLEncoder.encode(messageText(), 'UTF-8')
-                    httpRequest(
+                echo messageText()
+                def encodedText = URLEncoder.encode(messageText(), 'UTF-8')
+                httpRequest(
+                    url: "https://api.telegram.org/bot${env.botToken}/sendMessage?chat_id=${env.chatId}&text=${encodedText}",
+                    httpMode: 'GET'
+                )
+			}
+        }
+        failure {
+            script {
+                echo messageTextError()
+                def encodedText = URLEncoder.encode(messageTextError(), 'UTF-8')
+                httpRequest(
                         url: "https://api.telegram.org/bot${env.botToken}/sendMessage?chat_id=${env.chatId}&text=${encodedText}",
                         httpMode: 'GET'
                     )
-			}
+            }
         }
     }
 }
@@ -131,5 +141,10 @@ pipeline {
 def messageText() {
     return """
 ${params.nameProduct} | ${params.version} — Отправлен в ГРМ
+""".stripIndent().trim()
+}
+def messageTextError() {
+    return """
+${params.nameProduct} | ${params.version} — Ошибка при загрузке в ГРМ!
 """.stripIndent().trim()
 }
