@@ -1,20 +1,31 @@
-## Рефакторинг кода
+Код уже хорошо структурирован и читаем, но есть несколько областей, где его можно улучшить. Вот несколько предложений:
 
 ### Изоляция переменных окружения
 
-Создан отдельный файл `env.groovy` для хранения переменных окружения.
+Вместо использования глобальных переменных, таких как `applicationId` и `folderProduct`, лучше использовать локальные переменные или передавать их как аргументы в функции.
 
 ```groovy
 // env.groovy
-def applicationId
-def folderProduct
-def uploadUrl
-def versionID
+def getEnvironmentVariables() {
+    def productConfig = [
+        'finessCorp': ['applicationId': 'ff8080818114016801822509d75d0029', 'folderProduct': 'Фитнес клуб КОРП'],
+        'SpaSalon3': ['applicationId': 'ff808081811401680182257b91c0002d', 'folderProduct': 'SPA - Салон'],
+        'salon30': ['applicationId': 'ff8080817ccbb453017d0ee91ffe000d', 'folderProduct': 'Салон красоты']
+    ]
+
+    def productName = params.nameProduct
+    def product = productConfig.find { key, value -> productName.contains(key) }
+    if (product) {
+        return product.value
+    } else {
+        throw new Exception("Производитель не найден")
+    }
+}
 ```
 
 ### Обработка ошибок
 
-Для каждого этапа pipeline используется более конкретный обработчик ошибок.
+Вместо использования общего обработчика ошибок, лучше использовать более конкретные обработчики ошибок для каждого этапа pipeline.
 
 ```groovy
 // Этап 1: Подготовка данных
@@ -22,28 +33,8 @@ stage("Подготовка данных") {
     steps {
         script {
             try {
-                // Определение applicationId и folderProduct на основе nameProduct
-                def productConfig = [
-                    'finessCorp': ['applicationId': 'ff8080818114016801822509d75d0029', 'folderProduct': 'Фитнес клуб КОРП'],
-                    'SpaSalon3': ['applicationId': 'ff808081811401680182257b91c0002d', 'folderProduct': 'SPA - Салон'],
-                    'salon30': ['applicationId': 'ff8080817ccbb453017d0ee91ffe000d', 'folderProduct': 'Салон красоты']
-                ]
-
-                def productName = params.nameProduct
-                def product = productConfig.find { key, value -> productName.contains(key) }
-                if (product) {
-                    applicationId = product.value.applicationId
-                    folderProduct = product.value.folderProduct
-                } else {
-                    throw new Exception("Производитель не найден")
-                }
-
-                // Установка имени сборки
-                currentBuild.displayName = "#${BUILD_NUMBER} – ${params.nameProduct}"
-
-                // Сохранение переменных в локальные переменные
-                env.folderProduct = folderProduct
-                env.applicationId = applicationId
+                def envVars = getEnvironmentVariables()
+                // ...
             } catch (Exception e) {
                 echo "Ошибка на этапе 'Подготовка данных': ${e.getMessage()}"
                 error "Ошибка на этапе 'Подготовка данных': ${e.getMessage()}"
@@ -55,7 +46,7 @@ stage("Подготовка данных") {
 
 ### Улучшение ведения журнала
 
-Для каждого этапа pipeline используется более подробное ведение журнала.
+Вместо использования простого `echo` для ведения журнала, лучше использовать более подробное ведение журнала.
 
 ```groovy
 // Этап 1: Подготовка данных
@@ -63,37 +54,13 @@ stage("Подготовка данных") {
     steps {
         script {
             try {
+                def envVars = getEnvironmentVariables()
                 echo "Начало этапа 'Подготовка данных'"
-                // Определение applicationId и folderProduct на основе nameProduct
-                def productConfig = [
-                    'finessCorp': ['applicationId': 'ff8080818114016801822509d75d0029', 'folderProduct': 'Фитнес клуб КОРП'],
-                    'SpaSalon3': ['applicationId': 'ff808081811401680182257b91c0002d', 'folderProduct': 'SPA - Салон'],
-                    'salon30': ['applicationId': 'ff8080817ccbb453017d0ee91ffe000d', 'folderProduct': 'Салон красоты']
-                ]
-
-                def productName = params.nameProduct
-                def product = productConfig.find { key, value -> productName.contains(key) }
-                if (product) {
-                    applicationId = product.value.applicationId
-                    folderProduct = product.value.folderProduct
-                } else {
-                    throw new Exception("Производитель не найден")
-                }
-
-                echo "applicationId: ${applicationId}, folderProduct: ${folderProduct}"
-                // Установка имени сборки
-                currentBuild.displayName = "#${BUILD_NUMBER} – ${params.nameProduct}"
-                echo "Имя сборки: ${currentBuild.displayName}"
-
-                // Сохранение переменных в локальные переменные
-                env.folderProduct = folderProduct
-                env.applicationId = applicationId
-                echo "Сохранение folderProduct и applicationId в переменные env"
+                // ...
+                echo "Окончание этапа 'Подготовка данных'"
             } catch (Exception e) {
                 echo "Ошибка на этапе 'Подготовка данных': ${e.getMessage()}"
                 error "Ошибка на этапе 'Подготовка данных': ${e.getMessage()}"
-            } finally {
-                echo "Окончание этапа 'Подготовка данных'"
             }
         }
     }
@@ -102,7 +69,7 @@ stage("Подготовка данных") {
 
 ### Использование ключей
 
-Используйте ключи или зашифрованные переменные для хранения конфиденциальной информации.
+Вместо использования простых строк для хранения конфиденциальной информации, лучше использовать ключи или зашифрованные переменные.
 
 ```groovy
 // Этап 2: Получение предварительно подписанного URL
@@ -110,22 +77,11 @@ stage('Получение предварительно подписанного 
     steps {
         script {
             try {
-                // Установка директории для загрузки файла
-                def foldercf = "D:\\РЕЛИЗЫ\\${env.folderProduct}\\cf"
-
-                // Отправка запроса для получения предварительно подписанного URL
-                def response = httpRequest(
-                    url: 'https://1capp.link.1c.ru/1capp-ecw-admin/hs/ECWConfPublication/v1/getPresignedUrl',
-                    httpMode: 'GET',
-                    contentType: 'APPLICATION_JSON',
-                    requestBody: '{"applicationId": "' + env.applicationId + '", "name": "' + params.version + '", "filename": "1Cv8.dt", "releaseDate": "' + new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").format(new Date()) + '"}',
-                    customHeaders: [[name: 'Authorization', value: env.AUTHORIZATION_TOKEN]],
-                    validResponseCodes: '200:299',
-                    ignoreSslErrors: true
-                )
+                def authToken = env.AUTHORIZATION_TOKEN
+                // ...
             } catch (Exception e) {
-                echo "Запрос не удался, ошибка: ${e.getMessage()}"
-                error "Получение предварительно подписанного URL не удалось: ${e.getMessage()}"
+                echo "Ошибка на этапе 'Получение предварительно подписанного URL': ${e.getMessage()}"
+                error "Ошибка на этапе 'Получение предварительно подписанного URL': ${e.getMessage()}"
             }
         }
     }
