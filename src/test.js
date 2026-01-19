@@ -1,140 +1,187 @@
-## Улучшенная Версия Код
+Вот улучшенная версия кода с добавлением TODO и улучшением читаемости:
 
-```python
-def calculate_result(data: list[int]) -> int:
-    """
-    Выполняет сложную операцию над данными.
-    
-    :param data: Набор данных для обработки
-    :return: Результат операции
-    """
-    # TODO: Рассмотреть возможность оптимизации алгоритма для больших наборов данных
-    result = 0
-    for element in data:
-        try:
-            # Пример сложной операции
-            result += element * 2
-        except TypeError:
-            # Обработка потенциальной ошибки типа
-            print("Ошибка типа данных")
-        # TODO: Добавить проверку на потенциальные исключения здесь
-    return result
+```groovy
+pipeline {
+    agent { label "OneS" }
+    stages {
+        // Этап 1: Подготовка данных
+        stage("Подготовка данных") {
+            steps {
+                script {
+                    // Установка имени сборки
+                    currentBuild.displayName = "#${BUILD_NUMBER} – ${params.nameProduct}"
+                    
+                    // Определение applicationId и folderProduct на основе nameProduct
+                    if (params.nameProduct.contains('finessCorp')) {
+                        env.applicationId = "ff8080818114016801822509d75d0029"
+                        env.folderProduct = "Фитнес клуб КОРП"
+                    } else if (params.nameProduct.contains('SpaSalon3')) {
+                        env.applicationId = "ff808081811401680182257b91c0002d"
+                        env.folderProduct = "SPA - Салон"
+                    } else if (params.nameProduct.contains('salon30')) {
+                        env.applicationId = "ff8080817ccbb453017d0ee91ffe000d"
+                        env.folderProduct = "Салон красоты"
+                    }
+                }
+            }
+        }
 
-# TODO: Переписать функцию, чтобы она возвращала словарь вместо списка
-def another_function() -> dict:
-    """
-    Пример другой функции.
-    
-    :return: Результат другой функции
-    """
-    # Пример другой функции
-    # TODO: Реализовать логику функции
-    return {}  # Временный возврат пустого словаря
+        // Этап 2: Получение предподписанной ссылки
+        stage('Получение предподписанной ссылки') {
+            steps {
+                script {
+                    // Задание папки для загрузки файла
+                    env.foldercf = "D:\\РЕЛИЗЫ\\${folderProduct}\\cf"
+                    
+                    // Формирование запроса для получения предподписанной ссылки
+                    def params = [
+                        "applicationId": "${env.applicationId}",
+                        "name": "${params.version}",
+                        "filename": "1Cv8.dt",
+                        "releaseDate": new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").format(new Date())
+                    ]
+                    def jsonBody = groovy.json.JsonOutput.toJson(params)
+                    echo "Request Body: ${jsonBody}"
+                    
+                    try {
+                        // Отправка запроса для получения предподписанной ссылки
+                        def response = httpRequest(
+                            url: 'https://1capp.link.1c.ru/1capp-ecw-admin/hs/ECWConfPublication/v1/getPresignedUrl',
+                            httpMode: 'GET',
+                            contentType: 'APPLICATION_JSON',
+                            requestBody: jsonBody,
+                            customHeaders: [[name: 'Authorization', value: 'Basic bGFicG86Q28zamlrb20=']],
+                            validResponseCodes: '200:299',
+                            ignoreSslErrors: true
+                        )
+                        echo "Response Status: ${response.status}"
+                        echo "Response Content: ${response.content}"
 
-# FIXME: Устаревший код, требует удаления
-# def deprecated_function():
-#     """
-#     Устаревшая функция, которая должна быть удалена.
-#     """
-#     # TODO: Удалить эту функцию в следующем релизе
-#     pass
+                        // Распарсивание ответа для получения ссылки и версии
+                        def jsonSlurper = new groovy.json.JsonSlurper()
+                        def responseJson = jsonSlurper.parseText(response.content)
+                        def uploadUrl = responseJson.uploadUrl
+                        env.versionID = responseJson.id
 
-def complex_operation(a: int, b: int) -> int:
-    """
-    Выполняет сложную операцию над двумя числами.
-    
-    :param a: Первое число
-    :param b: Второе число
-    :return: Результат операции
-    """
-    # Пример сложной операции
-    try:
-        result = a + b
-    except TypeError:
-        # Обработка потенциальной ошибки типа
-        print("Ошибка типа данных")
-        return None
-    # TODO: Добавить проверку на потенциальные исключения здесь
-    return result
+                        echo "Extracted uploadUrl: ${uploadUrl}"
+                        env.UPLOAD_URL = uploadUrl
+                        echo "Saved uploadUrl to env variable: ${env.UPLOAD_URL}"
+                    } catch (Exception e) {
+                        echo "Request failed with error: ${e.getMessage()}"
+                        error "Failed to get presigned URL: ${e.getMessage()}"
+                    }
+                }
+            }
+        }
 
-# TODO: Переписать функцию, чтобы она использовала более эффективный алгоритм
-def inefficient_algorithm(data: list[int]) -> int:
-    """
-    Выполняет неэффективный алгоритм над данными.
-    
-    :param data: Набор данных для обработки
-    :return: Результат алгоритма
-    """
-    # Пример неэффективного алгоритма
-    result = 0
-    for element in data:
-        try:
-            result += element * 2
-        except TypeError:
-            # Обработка потенциальной ошибки типа
-            print("Ошибка типа данных")
-    # TODO: Рассмотреть возможность оптимизации алгоритма
-    return result
+        // Этап 3: Получение .dt
+        stage("Получение .dt") {
+            steps {
+                script {
+                    // Выполнение команд для получения .dt
+                    bat """
+                    chcp 65001
+                    @call vrunner session kill --db grm --db-user "Админ" --db-pwd "" --uccode grm
+                    @call vrunner load --src "${env.foldercf}\\${params.version}.cf" --ibconnection /Slocalhost/grm --uccode grm
+                    @call vrunner updatedb --ibconnection /Slocalhost/grm --uccode grm
+                    @call vrunner dump dt/1Cv8.dt --ibconnection /Slocalhost/grm --uccode grm
+                    @call vrunner session unlock --db grm --db-user "Админ" --db-pwd "" --uccode grm
+                    """
+                }
+            }
+        }
+
+        // Этап 4: Загрузка файла в объектное хранилище
+        stage('Загрузка файла в объектное хранилище') {
+            steps {
+                script {
+                    // Проверка наличия файла
+                    def uploadUrl = UPLOAD_URL
+                    def filePath = "dt/1Cv8.dt"
+                    if (!fileExists(filePath)) {
+                        error "File not found at: ${filePath}"
+                    }
+                    echo "Uploading file from: ${filePath}"
+                    echo "Target URL: ${uploadUrl}"
+                    
+                    // TODO: Используйте более безопасный метод аутентификации для upload_file.py
+                    sh """
+                    python tools/upload_file.py "${uploadUrl}" "${filePath}"
+                    """
+                }
+            }
+        }
+
+        // Этап 5: Установка версии по умолчанию
+        stage('Установка версии по умолчанию') {
+            steps {
+                script {
+                    try {
+                        // Отправка запроса для установки версии по умолчанию
+                        def response = httpRequest(
+                            url: "https://1capp.link.1c.ru/1capp-ecw-admin/hs/ECWConfPublication/v1/setDefaultVersion?applicationId=${env.applicationId}&versionId=${env.versionID}",
+                            httpMode: 'POST',
+                            contentType: 'APPLICATION_JSON',
+                            customHeaders: [[name: 'Authorization', value: 'Basic bGFicG86Q28zamlrb20=']],
+                            validResponseCodes: '200:299',
+                            ignoreSslErrors: true
+                        )
+                        echo "Response Status: ${response.status}"
+                        echo "Response Content: ${response.content}"
+                    } catch (Exception e) {
+                        echo "Request failed with error: ${e.getMessage()}"
+                        error "Failed to set default version: ${e.getMessage()}"
+                    }
+                }
+            }
+        }
+    }
+
+    // Действия после выполнения пайплайна
+    post {
+        success {
+            script {
+                // Отправка уведомления в Telegram при успешном выполнении
+                echo messageText()
+                def encodedText = URLEncoder.encode(messageText(), 'UTF-8')
+                httpRequest(
+                    url: "https://api.telegram.org/bot${env.botToken}/sendMessage?chat_id=${env.chatId}&text=${encodedText}",
+                    httpMode: 'GET'
+                )
+            }
+        }
+        failure {
+            script {
+                // Отправка уведомления в Telegram при неудачном выполнении
+                echo messageTextError()
+                def encodedText = URLEncoder.encode(messageTextError(), 'UTF-8')
+                httpRequest(
+                    url: "https://api.telegram.org/bot${env.botToken}/sendMessage?chat_id=${env.chatId}&text=${encodedText}",
+                    httpMode: 'GET'
+                )
+            }
+        }
+    }
+}
+
+// Функция для формирования текста уведомления
+def messageText() {
+    return """
+${env.folderProduct} | ${params.version} — Отправлен в ГРМ
+""".stripIndent().trim()
+}
+
+// Функция для формирования текста уведомления об ошибке
+def messageTextError() {
+    return """
+${env.folderProduct} | ${params.version} — Ошибка при загрузке в ГРМ!
+""".stripIndent().trim()
+}
 ```
 
-### Список Действий TODO
-
-1.  **Рассмотреть возможность оптимизации алгоритма**: Применить более эффективный алгоритм для обработки больших наборов данных.
-2.  **Добавить проверку на потенциальные исключения**: Обработать потенциальные ошибки, которые могут возникнуть во время выполнения кода.
-3.  **Переписать функцию, чтобы она возвращала словарь вместо списка**: Изменить функцию так, чтобы она возвращала словарь вместо списка.
-4.  **Удалить устаревший код**: Удалить код, который больше не используется или является устаревшим.
-5.  **Добавить типы для переменных и функций**: Указать типы для переменных и функций, чтобы улучшить читаемость и безопасность кода.
-6.  **Переписать функцию, чтобы она использовала более эффективный алгоритм**: Заменить неэффективный алгоритм на более эффективный вариант.
-7.  **Реализовать логику другой функции**: Добавить необходимую логику в функцию `another_function`, чтобы она возвращала ожидаемый результат.
-
-### Примечания
-
-*   Код был отформатирован в соответствии со стандартами PEP 8 для улучшения читаемости.
-*   Добавлены типы для переменных и функций, чтобы сделать код более безопасным и понятным.
-*   Исправлены потенциальные ошибки и добавлены проверки на исключения, чтобы повысить стабильность программы.
-*   Создан список действий TODO для реализации необходимых изменений и улучшений в коде.
-
-### Важные Изменения
-
-*   **Оптимизация алгоритма**: Необходимо применить более эффективный алгоритм для обработки больших наборов данных в функции `calculate_result`.
-*   **Реализация логики другой функции**: Необходимо добавить необходимую логику в функцию `another_function`, чтобы она возвращала ожидаемый результат.
-*   **Удаление устаревшего кода**: Необходимо удалить код, который больше не используется или является устаревшим, чтобы улучшить поддерживаемость и безопасность программы.
-
-### Рекомендации по Улучшению
-
-1.  **Использование библиотечных функций**: Рассмотреть возможность использования готовых библиотечных функций для выполнения часто встречающихся задач, чтобы упростить код и повысить производительность.
-2.  **Параллельная обработка**: Использовать параллельную обработку для выполнения ресурсоёмких задач, чтобы ускорить выполнение программы и повысить отзывчивость.
-3.  **Логирование**: Реализовать подробное логирование для отслеживания выполнения программы и выявления потенциальных проблем, что упростит отладку и поддержку кода.
-4.  **Тестирование**: Разработать полный набор тестов для проверки функциональности программы и обеспечения корректности работы, что поможет обнаружить ошибки на ранних стадиях разработки.
-
-### Близжайшие Планы
-
-1.  **Реализация новых функций**: Добавить новые функции в программу для расширения ее возможностей и повышения полезности для пользователей.
-2.  **Оптимизация производительности**: Продолжить оптимизацию кода для повышения скорости выполнения и снижения потребления ресурсов, что сделает программу более эффективной и удобной в использовании.
-3.  **Улучшение безопасности**: Уделить особое внимание безопасности программы, реализуя дополнительные меры защиты и контроля доступа, чтобы обезопасить данные пользователей и предотвратить потенциальные угрозы. 
-
-### Изменения Кодовой Базы
-
-1. **Оптимизация функции `calculate_result`**: Применить более эффективный алгоритм для обработки больших наборов данных.
-    ```python
-def calculate_result(data: list[int]) -> int:
-    result = 0
-    for element in data:
-        try:
-            result += element * 2
-        except TypeError:
-            print("Ошибка типа данных")
-    return result
-    ```
-2. **Реализация логики функции `another_function`**: Добавить необходимую логику для возвращения ожидаемого результата.
-    ```python
-def another_function() -> dict:
-    # Реализация логики функции
-    return {"result": "ожидаемый результат"}
-    ```
-3. **Удаление устаревшего кода**: Удалить код, который больше не используется или является устаревшим.
-    ```python
-# FIXME: Устаревший код, требует удаления
-# def deprecated_function():
-#     pass
-    ```
+TODO:
+1. **Используйте более безопасный метод аутентификации**: В скрипте `upload_file.py` используйте более безопасный метод аутентификации вместо передачи пароля в открытом виде.
+2. **Обработка ошибок**: Разработайте более детальную обработку ошибок на каждом этапе пайплайна.
+3. **Логирование**: Реализуйте подробное логирование для всех этапов пайплайна, включая запросы и ответы.
+4. **Использование secrets**: Используйте секреты для хранения конфиденциальной информации, такой как токены и пароли.
+5. **Проверка**: Регулярно проверяйте и обновляйте скрипт, чтобы он соответствовал последним рекомендациям и лучшим практикам.
