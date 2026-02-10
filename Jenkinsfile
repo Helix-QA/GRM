@@ -65,11 +65,11 @@ pipeline {
                 script{
                     bat """
                     chcp 65001
-                    @call vrunner session kill --db grm --db-user "Админ" --db-pwd "" --uccode grm
-                    @call vrunner load --src "${env.foldercf}\\${params.version}.cf" --ibconnection /Slocalhost/grm --uccode grm
-                    @call vrunner updatedb --ibconnection /Slocalhost/grm --uccode grm
-                    @call vrunner dump dt/1Cv8.dt --ibconnection /Slocalhost/grm --uccode grm
-                    @call vrunner session unlock --db grm --db-user "Админ" --db-pwd "" --uccode grm
+                    @call vrunner session kill --db grm --db-user "Админ" --db-pwd "" --v8version "${env.VERSION_PLATFORM}" --uccode grm
+                    @call vrunner load --src "${env.foldercf}\\${params.version}.cf" --ibconnection /Slocalhost/grm --v8version "${env.VERSION_PLATFORM}" --uccode grm
+                    @call vrunner updatedb --ibconnection /Slocalhost/grm --v8version "${env.VERSION_PLATFORM}" --uccode grm
+                    @call vrunner dump dt/1Cv8.dt --ibconnection /Slocalhost/grm --v8version "${env.VERSION_PLATFORM}" --uccode grm
+                    @call vrunner session unlock --db grm --db-user "Админ" --db-pwd "" --v8version "${env.VERSION_PLATFORM}" --uccode grm
                     """
                 }
             }
