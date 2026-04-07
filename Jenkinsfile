@@ -122,7 +122,7 @@ pipeline {
                 httpRequest(
                     url: "https://api.telegram.org/bot${env.botToken}/sendMessage?chat_id=${env.chatId}&text=${encodedText}",
                     httpMode: 'GET',
-                    httpProxy: "${env.PROXY_URL}"
+                    httpProxy: "${env.proxyUrl}"
                 )
 			}
         }
@@ -133,7 +133,7 @@ pipeline {
                 httpRequest(
                         url: "https://api.telegram.org/bot${env.botToken}/sendMessage?chat_id=${env.chatId}&text=${encodedText}",
                         httpMode: 'GET',
-                        httpProxy: "${env.PROXY_URL}"
+                        httpProxy: "${env.proxyUrl}"
                     )
             }
         }
