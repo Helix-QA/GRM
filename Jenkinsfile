@@ -121,7 +121,8 @@ pipeline {
                 def encodedText = URLEncoder.encode(messageText(), 'UTF-8')
                 httpRequest(
                     url: "https://api.telegram.org/bot${env.botToken}/sendMessage?chat_id=${env.chatId}&text=${encodedText}",
-                    httpMode: 'GET'
+                    httpMode: 'GET',
+                    httpProxy: "${env.PROXY_URL}"
                 )
 			}
         }
@@ -131,7 +132,8 @@ pipeline {
                 def encodedText = URLEncoder.encode(messageTextError(), 'UTF-8')
                 httpRequest(
                         url: "https://api.telegram.org/bot${env.botToken}/sendMessage?chat_id=${env.chatId}&text=${encodedText}",
-                        httpMode: 'GET'
+                        httpMode: 'GET',
+                        httpProxy: "${env.PROXY_URL}"
                     )
             }
         }
